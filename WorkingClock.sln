@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29503.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StopWatch", "StopWatch.csproj", "{5EAA6FCF-2BFB-4B95-B5E6-793F3BBE18BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkingClock", "WorkingClock.csproj", "{5EAA6FCF-2BFB-4B95-B5E6-793F3BBE18BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

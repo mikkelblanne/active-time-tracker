@@ -1,0 +1,121 @@
+﻿using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Windows.Forms;
+using Microsoft.Win32;
+
+namespace WorkingClock
+{
+    public partial class WorkingClockForm : Form
+    {
+        public WorkingClockForm()
+        {
+            InitializeComponent();
+
+            TryLoadingToday();
+            StartAutoCounter();
+            StartAutoSave();
+        }
+
+        private TimeSpan _unlockedTimeElapsed = TimeSpan.Zero;
+        private DateTime _lastUnlock;
+        private Timer _alwaysTimer;
+        private Timer _saveTimer;
+
+        private TimeSpan GetCurrentElapsed()
+        {
+            TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
+            return _unlockedTimeElapsed + currentElapsed;
+        }
+
+        private void TryLoadingToday()
+        {
+            Entry today = Storage.GetEntry(DateTime.Now);
+            if (today != null)
+            {
+                _unlockedTimeElapsed = today.LoggedTime;
+            }
+        }
+
+        private void StartAutoCounter()
+        {
+            SystemEvents.SessionSwitch += SystemEventsOnSessionSwitch;
+
+            _lastUnlock = DateTime.Now;
+            _alwaysTimer = new Timer();
+            _alwaysTimer.Interval = 1000;
+            _alwaysTimer.Tick += _autoTimer_Tick;
+            _alwaysTimer.Start();
+        }
+
+        private void _autoTimer_Tick(object sender, EventArgs e)
+        {
+            TimeSpan elapsed = _unlockedTimeElapsed;
+            elapsed += DateTime.Now - _lastUnlock;
+            label_unlockedTime.Text = FormatTimeSpan(elapsed);
+        }
+
+        private void StartAutoSave()
+        {
+            _saveTimer = new Timer();
+            _saveTimer.Interval = 30000;
+            _saveTimer.Tick += _saveTimer_Tick; ;
+            _saveTimer.Start();
+        }
+
+        private void _saveTimer_Tick(object sender, EventArgs e)
+        {
+            Save();
+        }
+
+        private static string FormatTimeSpan(TimeSpan elapsed)
+        {
+            return elapsed.ToString("hh\\:mm\\:ss");
+        }
+
+        private void SystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs e)
+        {
+            switch (e.Reason)
+            {
+                case SessionSwitchReason.SessionLock:
+                    TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
+                    Debug.WriteLine($"SessionSwitch: Locked after {currentElapsed}");
+                    _unlockedTimeElapsed += currentElapsed;
+                    break;
+                case SessionSwitchReason.SessionUnlock:
+                    _lastUnlock = DateTime.Now;
+                    Debug.WriteLine($"SessionSwitch: Unlocked at {_lastUnlock}");
+                    break;
+                default:
+                    Debug.WriteLine($"SessionSwitch: {e.Reason}");
+                    break;
+            }
+        }
+
+        private void monthCalendar1_DateSelected(object sender, DateRangeEventArgs e)
+        {
+            var entries = Storage.GetEntries(e.Start, e.End);
+            TimeSpan total = entries.Aggregate(TimeSpan.Zero, (acc, entry) => acc + entry.LoggedTime);
+            label_timeLogged.Text = FormatTimeSpan(total);
+        }
+
+        private void Save()
+        {
+            Entry today = new Entry
+            {
+                Date = DateTime.Now,
+                LoggedTime = GetCurrentElapsed()
+            };
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            Storage.SaveEntry(today);
+            stopwatch.Stop();
+            Debug.WriteLine($"Save took {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        private void linkLabel_saveFolder_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(Storage.DataDirectory);
+        }
+    }
+}
