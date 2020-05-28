@@ -50,6 +50,11 @@ namespace WorkingClock
 
         private void _autoTimer_Tick(object sender, EventArgs e)
         {
+            DisplayElapsedTime();
+        }
+
+        private void DisplayElapsedTime()
+        {
             TimeSpan elapsed = _unlockedTimeElapsed;
             elapsed += DateTime.Now - _lastUnlock;
             label_unlockedTime.Text = FormatTimeSpan(elapsed);
@@ -116,6 +121,16 @@ namespace WorkingClock
         private void linkLabel_saveFolder_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start(Storage.DataDirectory);
+        }
+
+        private void button_manuallyAdd_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(textBox_manuallyAdd.Text, out int minutes))
+            {
+                _unlockedTimeElapsed += TimeSpan.FromMinutes(minutes);
+                DisplayElapsedTime();
+                Save();
+            }
         }
     }
 }
