@@ -13,6 +13,7 @@ namespace WorkingClock
             InitializeComponent();
 
             TryLoadingToday();
+            StartDateRolloverTimer();
             StartAutoCounter();
             StartAutoSave();
         }
@@ -21,6 +22,7 @@ namespace WorkingClock
         private DateTime _lastUnlock;
         private Timer _alwaysTimer;
         private Timer _saveTimer;
+        private AbsoluteTimer.AbsoluteTimer _dateRolloverTimer;
 
         private TimeSpan GetCurrentElapsed()
         {
@@ -73,6 +75,24 @@ namespace WorkingClock
             Save();
         }
 
+        private void StartDateRolloverTimer()
+        {
+            DateTime rolloverTime = DateTime.Now.AddDays(1).Date;
+            Debug.WriteLine($"StartDateRolloverTimer scheduling reset at {rolloverTime}");
+            _dateRolloverTimer = new AbsoluteTimer.AbsoluteTimer(rolloverTime, DateRollover, null);
+        }
+
+        private void DateRollover(object state)
+        {
+            Debug.WriteLine($"{DateTime.Now} DateRollover");
+            // Leave whatever was saved last - it's already past midnight, so the wrong day would be saved now
+            // Reset counters
+            _unlockedTimeElapsed = TimeSpan.Zero;
+            _lastUnlock = DateTime.Now;
+            _dateRolloverTimer.Dispose();
+            StartDateRolloverTimer();
+        }
+
         private static string FormatTimeSpan(TimeSpan elapsed)
         {
             return elapsed.ToString("hh\\:mm\\:ss");
@@ -106,6 +126,7 @@ namespace WorkingClock
 
         private void Save()
         {
+            Debug.WriteLine($"{DateTime.Now} Saving");
             Entry today = new Entry
             {
                 Date = DateTime.Now,

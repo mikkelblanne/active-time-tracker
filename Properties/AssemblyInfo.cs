@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("StopWatch")]
+[assembly: AssemblyTitle("WorkingClock")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("KMD A/S")]
-[assembly: AssemblyProduct("StopWatch")]
+[assembly: AssemblyProduct("WorkingClock")]
 [assembly: AssemblyCopyright("Copyright © KMD A/S 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
