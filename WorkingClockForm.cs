@@ -14,15 +14,16 @@ namespace WorkingClock
 
             TryLoadingToday();
             StartDateRolloverTimer();
-            StartAutoCounter();
+            StartTrackingElapsed();
             StartAutoSave();
         }
 
         private TimeSpan _unlockedTimeElapsed = TimeSpan.Zero;
-        private DateTime _lastUnlock;
+        private DateTime _lastUnlock = DateTime.Now;
         private Timer _alwaysTimer;
         private Timer _saveTimer;
         private AbsoluteTimer.AbsoluteTimer _dateRolloverTimer;
+        private DateTime _dateTracked = DateTime.Now.Date;
 
         private TimeSpan GetCurrentElapsed()
         {
@@ -39,27 +40,25 @@ namespace WorkingClock
             }
         }
 
-        private void StartAutoCounter()
+        private void StartTrackingElapsed()
         {
             SystemEvents.SessionSwitch += SystemEventsOnSessionSwitch;
+            SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
 
-            _lastUnlock = DateTime.Now;
             _alwaysTimer = new Timer();
             _alwaysTimer.Interval = 1000;
-            _alwaysTimer.Tick += _autoTimer_Tick;
+            _alwaysTimer.Tick += _displayElapsed_Tick;
             _alwaysTimer.Start();
         }
 
-        private void _autoTimer_Tick(object sender, EventArgs e)
+        private void _displayElapsed_Tick(object sender, EventArgs e)
         {
             DisplayElapsedTime();
         }
 
         private void DisplayElapsedTime()
         {
-            TimeSpan elapsed = _unlockedTimeElapsed;
-            elapsed += DateTime.Now - _lastUnlock;
-            label_unlockedTime.Text = FormatTimeSpan(elapsed);
+            label_unlockedTime.Text = FormatTimeSpan(GetCurrentElapsed());
         }
 
         private void StartAutoSave()
@@ -68,6 +67,13 @@ namespace WorkingClock
             _saveTimer.Interval = 30000;
             _saveTimer.Tick += _saveTimer_Tick; ;
             _saveTimer.Start();
+        }
+
+        private void StopAutoSave()
+        {
+            _saveTimer.Stop();
+            _saveTimer.Dispose();
+            _saveTimer = null;
         }
 
         private void _saveTimer_Tick(object sender, EventArgs e)
@@ -89,6 +95,7 @@ namespace WorkingClock
             // Reset counters
             _unlockedTimeElapsed = TimeSpan.Zero;
             _lastUnlock = DateTime.Now;
+            _dateTracked = DateTime.Now.Date;
             _dateRolloverTimer.Dispose();
             StartDateRolloverTimer();
         }
@@ -103,16 +110,44 @@ namespace WorkingClock
             switch (e.Reason)
             {
                 case SessionSwitchReason.SessionLock:
-                    TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
-                    Debug.WriteLine($"SessionSwitch: Locked after {currentElapsed}");
-                    _unlockedTimeElapsed += currentElapsed;
+                    OnUserDisconnected();
                     break;
                 case SessionSwitchReason.SessionUnlock:
-                    _lastUnlock = DateTime.Now;
-                    Debug.WriteLine($"SessionSwitch: Unlocked at {_lastUnlock}");
+                    OnUserConnected();
                     break;
                 default:
-                    Debug.WriteLine($"SessionSwitch: {e.Reason}");
+                    Debug.WriteLine($"{DateTime.Now} SessionSwitch: {e.Reason}");
+                    break;
+            }
+        }
+
+        private void OnUserConnected()
+        {
+            _lastUnlock = DateTime.Now;
+            Debug.WriteLine($"{DateTime.Now} OnUserConnected: Connected at {_lastUnlock}");
+            StartAutoSave();
+        }
+
+        private void OnUserDisconnected()
+        {
+            TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
+            Debug.WriteLine($"{DateTime.Now} OnUserDisconnected: Disconnecting after {currentElapsed}");
+            _unlockedTimeElapsed += currentElapsed;
+            StopAutoSave();
+        }
+
+        private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
+        {
+            switch (e.Mode)
+            {
+                case PowerModes.Suspend:
+                    OnUserDisconnected();
+                    break;
+                case PowerModes.Resume:
+                    OnUserConnected();
+                    break;
+                default:
+                    Debug.WriteLine($"{DateTime.Now} PowerModeChanged: {e.Mode}");
                     break;
             }
         }
@@ -126,7 +161,14 @@ namespace WorkingClock
 
         private void Save()
         {
+            if (_dateTracked != DateTime.Now.Date)
+            {
+                Debug.WriteLine($"{DateTime.Now} Not saving, date rollover overdue");
+                return;
+            }
+
             Debug.WriteLine($"{DateTime.Now} Saving");
+
             Entry today = new Entry
             {
                 Date = DateTime.Now,
@@ -139,11 +181,6 @@ namespace WorkingClock
             Debug.WriteLine($"Save took {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        private void linkLabel_saveFolder_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            Process.Start(Storage.DataDirectory);
-        }
-
         private void button_manuallyAdd_Click(object sender, EventArgs e)
         {
             if (int.TryParse(textBox_manuallyAdd.Text, out int minutes))
@@ -151,7 +188,13 @@ namespace WorkingClock
                 _unlockedTimeElapsed += TimeSpan.FromMinutes(minutes);
                 DisplayElapsedTime();
                 Save();
+                textBox_manuallyAdd.Text = string.Empty;
             }
+        }
+
+        private void linkLabel_saveFolder_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(Storage.DataDirectory);
         }
     }
 }
