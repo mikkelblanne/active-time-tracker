@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace WorkingClock
+namespace ActiveTimeTracker
 {
     static class Program
     {
@@ -13,7 +13,7 @@ namespace WorkingClock
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new WorkingClockForm());
+            Application.Run(new ActiveTimeTrackerForm());
         }
     }
 }

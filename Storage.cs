@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace WorkingClock
+namespace ActiveTimeTracker
 {
     public static class Storage
     {
@@ -80,7 +80,7 @@ namespace WorkingClock
         private static DirectoryInfo GetDataDirectory()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string folder = Path.Combine(appData, "WorkingClock");
+            string folder = Path.Combine(appData, "ActiveTimeTracker");
             return Directory.CreateDirectory(folder);
         }
     }

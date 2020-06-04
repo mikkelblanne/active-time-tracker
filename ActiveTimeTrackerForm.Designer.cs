@@ -1,6 +1,6 @@
-﻿namespace WorkingClock
+﻿namespace ActiveTimeTracker
 {
-    partial class WorkingClockForm
+    partial class ActiveTimeTrackerForm
     {
         /// <summary>
         /// Required designer variable.
@@ -129,7 +129,7 @@
             this.button_manuallyAdd.UseVisualStyleBackColor = true;
             this.button_manuallyAdd.Click += new System.EventHandler(this.button_manuallyAdd_Click);
             // 
-            // WorkingClockForm
+            // ActiveTimeTracker
             // 
             this.AcceptButton = this.button_manuallyAdd;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -145,8 +145,8 @@
             this.Controls.Add(this.label_timeLogged);
             this.Controls.Add(this.label_unlockedTime);
             this.Margin = new System.Windows.Forms.Padding(2, 3, 2, 3);
-            this.Name = "WorkingClockForm";
-            this.Text = "WorkingClock";
+            this.Name = "ActiveTimeTrackerForm";
+            this.Text = "ActiveTimeTracker";
             this.ResumeLayout(false);
             this.PerformLayout();
 

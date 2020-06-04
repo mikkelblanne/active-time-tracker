@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5EAA6FCF-2BFB-4B95-B5E6-793F3BBE18BE}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>WorkingClock</RootNamespace>
-    <AssemblyName>WorkingClock</AssemblyName>
+    <RootNamespace>ActiveTimeTracker</RootNamespace>
+    <AssemblyName>ActiveTimeTracker</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -53,17 +53,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Entry.cs" />
-    <Compile Include="WorkingClockForm.cs">
+    <Compile Include="ActiveTimeTrackerForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="WorkingClockForm.Designer.cs">
-      <DependentUpon>WorkingClockForm.cs</DependentUpon>
+    <Compile Include="ActiveTimeTrackerForm.Designer.cs">
+      <DependentUpon>ActiveTimeTrackerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Storage.cs" />
-    <EmbeddedResource Include="WorkingClockForm.resx">
-      <DependentUpon>WorkingClockForm.cs</DependentUpon>
+    <EmbeddedResource Include="ActiveTimeTrackerForm.resx">
+      <DependentUpon>ActiveTimeTrackerForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

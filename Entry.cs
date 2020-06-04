@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WorkingClock
+namespace ActiveTimeTracker
 {
     public class Entry
     {

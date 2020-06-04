@@ -4,11 +4,11 @@ using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-namespace WorkingClock
+namespace ActiveTimeTracker
 {
-    public partial class WorkingClockForm : Form
+    public partial class ActiveTimeTrackerForm : Form
     {
-        public WorkingClockForm()
+        public ActiveTimeTrackerForm()
         {
             InitializeComponent();
 
