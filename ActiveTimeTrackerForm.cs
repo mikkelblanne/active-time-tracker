@@ -71,8 +71,8 @@ namespace ActiveTimeTracker
 
         private void StopAutoSave()
         {
-            _saveTimer.Stop();
-            _saveTimer.Dispose();
+            _saveTimer?.Stop();
+            _saveTimer?.Dispose();
             _saveTimer = null;
         }
 
@@ -107,6 +107,7 @@ namespace ActiveTimeTracker
 
         private void SystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs e)
         {
+            Debug.WriteLine($"{DateTime.Now} SessionSwitch: {e.Reason}");
             switch (e.Reason)
             {
                 case SessionSwitchReason.SessionLock:
@@ -116,7 +117,6 @@ namespace ActiveTimeTracker
                     OnUserConnected();
                     break;
                 default:
-                    Debug.WriteLine($"{DateTime.Now} SessionSwitch: {e.Reason}");
                     break;
             }
         }
@@ -138,6 +138,7 @@ namespace ActiveTimeTracker
 
         private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
         {
+            Debug.WriteLine($"{DateTime.Now} PowerModeChanged: {e.Mode}");
             switch (e.Mode)
             {
                 case PowerModes.Suspend:
@@ -147,7 +148,6 @@ namespace ActiveTimeTracker
                     OnUserConnected();
                     break;
                 default:
-                    Debug.WriteLine($"{DateTime.Now} PowerModeChanged: {e.Mode}");
                     break;
             }
         }
