@@ -85,6 +85,7 @@ namespace ActiveTimeTracker
         {
             DateTime rolloverTime = DateTime.Now.AddDays(1).Date;
             Debug.WriteLine($"StartDateRolloverTimer scheduling reset at {rolloverTime}");
+            _dateRolloverTimer?.Dispose();
             _dateRolloverTimer = new AbsoluteTimer.AbsoluteTimer(rolloverTime, DateRollover, null);
         }
 
@@ -96,7 +97,6 @@ namespace ActiveTimeTracker
             _unlockedTimeElapsed = TimeSpan.Zero;
             _lastUnlock = DateTime.Now;
             _dateTracked = DateTime.Now.Date;
-            _dateRolloverTimer.Dispose();
             StartDateRolloverTimer();
         }
 
@@ -161,7 +161,9 @@ namespace ActiveTimeTracker
 
         private void Save()
         {
-            if (_dateTracked != DateTime.Now.Date)
+            DateTime now = DateTime.Now;
+
+            if (_dateTracked != now.Date)
             {
                 Debug.WriteLine($"{DateTime.Now} Not saving, date rollover overdue");
                 return;
@@ -171,7 +173,7 @@ namespace ActiveTimeTracker
 
             Entry today = new Entry
             {
-                Date = DateTime.Now,
+                Date = now,
                 LoggedTime = GetCurrentElapsed()
             };
 
