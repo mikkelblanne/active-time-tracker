@@ -102,7 +102,7 @@ namespace ActiveTimeTracker
 
         private static string FormatTimeSpan(TimeSpan elapsed)
         {
-            return elapsed.ToString("hh\\:mm\\:ss");
+            return string.Format("{0:#,##0}:{1:mm}:{1:ss}", Math.Truncate(elapsed.TotalHours), elapsed);
         }
 
         private void SystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs e)
