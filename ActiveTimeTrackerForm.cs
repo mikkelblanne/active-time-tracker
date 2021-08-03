@@ -2,12 +2,15 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
+using log4net;
 using Microsoft.Win32;
 
 namespace ActiveTimeTracker
 {
     public partial class ActiveTimeTrackerForm : Form
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(ActiveTimeTrackerForm));
+
         public ActiveTimeTrackerForm()
         {
             InitializeComponent();
@@ -16,6 +19,17 @@ namespace ActiveTimeTracker
             StartDateRolloverTimer();
             StartTrackingElapsed();
             StartAutoSave();
+            FormClosing += ActiveTimeTrackerForm_FormClosing;
+        }
+
+        private void ActiveTimeTrackerForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (IsAutoSaveEnabled())
+            {
+                Save();
+            }
+
+            log.Info("Exiting");
         }
 
         private TimeSpan _unlockedTimeElapsed = TimeSpan.Zero;
@@ -24,6 +38,7 @@ namespace ActiveTimeTracker
         private Timer _saveTimer;
         private AbsoluteTimer.AbsoluteTimer _dateRolloverTimer;
         private DateTime _dateTracked = DateTime.Now.Date;
+        private bool trackPowerMode = true;
 
         private TimeSpan GetCurrentElapsed()
         {
@@ -63,6 +78,7 @@ namespace ActiveTimeTracker
 
         private void StartAutoSave()
         {
+            StopAutoSave(); // Avoid potential multiple timers in case of multiple events
             _saveTimer = new Timer();
             _saveTimer.Interval = 30000;
             _saveTimer.Tick += _saveTimer_Tick; ;
@@ -76,6 +92,11 @@ namespace ActiveTimeTracker
             _saveTimer = null;
         }
 
+        private bool IsAutoSaveEnabled()
+        {
+            return _saveTimer != null;
+        }
+
         private void _saveTimer_Tick(object sender, EventArgs e)
         {
             Save();
@@ -84,14 +105,14 @@ namespace ActiveTimeTracker
         private void StartDateRolloverTimer()
         {
             DateTime rolloverTime = DateTime.Now.AddDays(1).Date;
-            Debug.WriteLine($"StartDateRolloverTimer scheduling reset at {rolloverTime}");
+            log.Info($"StartDateRolloverTimer scheduling reset at {rolloverTime}");
             _dateRolloverTimer?.Dispose();
             _dateRolloverTimer = new AbsoluteTimer.AbsoluteTimer(rolloverTime, DateRollover, null);
         }
 
         private void DateRollover(object state)
         {
-            Debug.WriteLine($"{DateTime.Now} DateRollover");
+            log.Info($"DateRollover");
             // Leave whatever was saved last - it's already past midnight, so the wrong day would be saved now
             // Reset counters
             _unlockedTimeElapsed = TimeSpan.Zero;
@@ -107,7 +128,7 @@ namespace ActiveTimeTracker
 
         private void SystemEventsOnSessionSwitch(object sender, SessionSwitchEventArgs e)
         {
-            Debug.WriteLine($"{DateTime.Now} SessionSwitch: {e.Reason}");
+            log.Info($"SessionSwitch: {e.Reason}");
             switch (e.Reason)
             {
                 case SessionSwitchReason.SessionLock:
@@ -124,31 +145,34 @@ namespace ActiveTimeTracker
         private void OnUserConnected()
         {
             _lastUnlock = DateTime.Now;
-            Debug.WriteLine($"{DateTime.Now} OnUserConnected: Connected at {_lastUnlock}");
+            log.Info($"OnUserConnected: Connected at {_lastUnlock}");
             StartAutoSave();
         }
 
         private void OnUserDisconnected()
         {
             TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
-            Debug.WriteLine($"{DateTime.Now} OnUserDisconnected: Disconnecting after {currentElapsed}");
+            log.Info($"OnUserDisconnected: Disconnecting after {FormatTimeSpan(currentElapsed)} (previous total: {FormatTimeSpan(_unlockedTimeElapsed)})");
             _unlockedTimeElapsed += currentElapsed;
             StopAutoSave();
         }
 
         private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
         {
-            Debug.WriteLine($"{DateTime.Now} PowerModeChanged: {e.Mode}");
-            switch (e.Mode)
+            log.Info($"PowerModeChanged: {e.Mode}");
+            if (trackPowerMode)
             {
-                case PowerModes.Suspend:
-                    OnUserDisconnected();
-                    break;
-                case PowerModes.Resume:
-                    OnUserConnected();
-                    break;
-                default:
-                    break;
+                switch (e.Mode)
+                {
+                    case PowerModes.Suspend:
+                        OnUserDisconnected();
+                        break;
+                    case PowerModes.Resume:
+                        OnUserConnected();
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
@@ -165,11 +189,9 @@ namespace ActiveTimeTracker
 
             if (_dateTracked != now.Date)
             {
-                Debug.WriteLine($"{DateTime.Now} Not saving, date rollover overdue");
+                log.Info($"Not saving, date rollover overdue");
                 return;
             }
-
-            Debug.WriteLine($"{DateTime.Now} Saving");
 
             Entry today = new Entry
             {
@@ -180,7 +202,7 @@ namespace ActiveTimeTracker
             Stopwatch stopwatch = Stopwatch.StartNew();
             Storage.SaveEntry(today);
             stopwatch.Stop();
-            Debug.WriteLine($"Save took {stopwatch.ElapsedMilliseconds} ms");
+            log.Debug($"LoggedTime {FormatTimeSpan(today.LoggedTime)} saved in {stopwatch.ElapsedMilliseconds} ms");
         }
 
         private void button_manuallyAdd_Click(object sender, EventArgs e)

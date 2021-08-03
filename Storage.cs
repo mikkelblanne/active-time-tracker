@@ -11,8 +11,19 @@ namespace ActiveTimeTracker
     {
         public static string DataDirectory = GetDataDirectory().FullName;
 
+        private readonly static JsonSerializerSettings JsonSerializerSettings;
+
+        static Storage()
+        {
+            JsonSerializerSettings = new JsonSerializerSettings();
+            JsonSerializerSettings.DateFormatString = "yyyy'-'MM'-'dd'T'HH':'mm':'ssK";
+            JsonSerializerSettings.Converters.Add(new TimespanConverter());
+        }
+
         public static void SaveEntry(Entry entry)
         {
+            AddDayEntry(entry);
+
             string path = GetFilePath(entry.Date.Year, entry.Date.Month);
             List<Entry> existingEntries = LoadEntries(path);
             SortedDictionary<DateTime, TimeSpan> sortedEntries = ToSortedDictionary(existingEntries);
@@ -20,7 +31,22 @@ namespace ActiveTimeTracker
             sortedEntries[entry.Date.Date] = entry.LoggedTime;
             var entries = sortedEntries.Select(kv => new Entry { Date = kv.Key, LoggedTime = kv.Value });
 
-            string json = JsonConvert.SerializeObject(entries, Formatting.Indented);
+            SaveToJson(entries, path);
+        }
+
+        private static void AddDayEntry(Entry entry)
+        {
+            string path = GetFilePath(entry.Date.Year, entry.Date.Month, entry.Date.Day);
+            List<Entry> entries = LoadEntries(path);
+
+            entries.Add(entry);
+
+            SaveToJson(entries, path);
+        }
+
+        private static void SaveToJson(IEnumerable<Entry> entries, string path)
+        {
+            string json = JsonConvert.SerializeObject(entries, Formatting.Indented, JsonSerializerSettings);
             File.WriteAllText(path, json, Encoding.UTF8);
         }
 
@@ -77,11 +103,34 @@ namespace ActiveTimeTracker
             return GetFilePath($"{year}_{month:D2}");
         }
 
+        private static string GetFilePath(int year, int month, int day)
+        {
+            return GetFilePath($"{year}_{month:D2}_{day:D2}");
+        }
+
         private static DirectoryInfo GetDataDirectory()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string folder = Path.Combine(appData, "ActiveTimeTracker");
             return Directory.CreateDirectory(folder);
+        }
+
+        private class TimespanConverter : JsonConverter<TimeSpan>
+        {
+            public const string TimeSpanFormatString = @"hh\:mm\:ss";
+
+            public override void WriteJson(JsonWriter writer, TimeSpan value, JsonSerializer serializer)
+            {
+                var timespanFormatted = $"{value.ToString(TimeSpanFormatString)}";
+                writer.WriteValue(timespanFormatted);
+            }
+
+            public override TimeSpan ReadJson(JsonReader reader, Type objectType, TimeSpan existingValue, bool hasExistingValue, JsonSerializer serializer)
+            {
+                TimeSpan parsedTimeSpan;
+                TimeSpan.TryParseExact((string)reader.Value, TimeSpanFormatString, null, out parsedTimeSpan);
+                return parsedTimeSpan;
+            }
         }
     }
 }
