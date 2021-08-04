@@ -38,7 +38,7 @@ namespace ActiveTimeTracker
         private Timer _saveTimer;
         private AbsoluteTimer.AbsoluteTimer _dateRolloverTimer;
         private DateTime _dateTracked = DateTime.Now.Date;
-        private bool trackPowerMode = true;
+        private bool isUnlocked = true;
 
         private TimeSpan GetCurrentElapsed()
         {
@@ -132,9 +132,11 @@ namespace ActiveTimeTracker
             switch (e.Reason)
             {
                 case SessionSwitchReason.SessionLock:
+                    isUnlocked = false;
                     OnUserDisconnected();
                     break;
                 case SessionSwitchReason.SessionUnlock:
+                    isUnlocked = true;
                     OnUserConnected();
                     break;
                 default:
@@ -160,7 +162,7 @@ namespace ActiveTimeTracker
         private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
         {
             log.Info($"PowerModeChanged: {e.Mode}");
-            if (trackPowerMode)
+            if (isUnlocked)
             {
                 switch (e.Mode)
                 {
