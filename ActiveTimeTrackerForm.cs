@@ -155,8 +155,10 @@ namespace ActiveTimeTracker
         {
             TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
             log.Info($"OnUserDisconnected: Disconnecting after {FormatTimeSpan(currentElapsed)} (previous total: {FormatTimeSpan(_unlockedTimeElapsed)})");
-            _unlockedTimeElapsed += currentElapsed;
             StopAutoSave();
+            Save();
+            // Save() calculates elapsed time, so only increment afterwards
+            _unlockedTimeElapsed += currentElapsed;
         }
 
         private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
