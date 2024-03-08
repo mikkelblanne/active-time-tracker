@@ -213,6 +213,7 @@ namespace ActiveTimeTracker
         {
             if (int.TryParse(textBox_manuallyAdd.Text, out int minutes))
             {
+                log.Info($"Manually adding minutes: {minutes}");
                 _unlockedTimeElapsed += TimeSpan.FromMinutes(minutes);
                 DisplayElapsedTime();
                 Save();

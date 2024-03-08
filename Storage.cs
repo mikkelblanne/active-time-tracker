@@ -3,13 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using log4net;
 using Newtonsoft.Json;
 
 namespace ActiveTimeTracker
 {
     public static class Storage
     {
+        private static readonly ILog log = LogManager.GetLogger(typeof(Storage));
+
         public static string DataDirectory = GetDataDirectory().FullName;
+        private static string prevFileNameExtension = ".prev";
 
         private readonly static JsonSerializerSettings JsonSerializerSettings;
 
@@ -24,6 +28,11 @@ namespace ActiveTimeTracker
         {
             AddDayEntry(entry);
 
+            AddOrUpdateMonthEntry(entry);
+        }
+
+        private static void AddOrUpdateMonthEntry(Entry entry)
+        {
             string path = GetFilePath(entry.Date.Year, entry.Date.Month);
             List<Entry> existingEntries = LoadEntries(path);
             SortedDictionary<DateTime, TimeSpan> sortedEntries = ToSortedDictionary(existingEntries);
@@ -47,7 +56,16 @@ namespace ActiveTimeTracker
         private static void SaveToJson(IEnumerable<Entry> entries, string path)
         {
             string json = JsonConvert.SerializeObject(entries, Formatting.Indented, JsonSerializerSettings);
-            File.WriteAllText(path, json, Encoding.UTF8);
+            string newFileName = path + ".new";
+            string prevFileName = path + prevFileNameExtension;
+            File.WriteAllText(newFileName, json, Encoding.UTF8);
+
+            if(File.Exists(path))
+            {
+                File.Move(path, prevFileName);
+            }
+            File.Move(newFileName, path);
+            File.Delete(prevFileName);
         }
 
         public static Entry GetEntry(DateTime date)
@@ -81,12 +99,42 @@ namespace ActiveTimeTracker
             return new SortedDictionary<DateTime, TimeSpan>(dict);
         }
 
-        private static List<Entry> LoadEntries(string file)
+        private static string BackupFileName(string file)
+        {
+            return file + "." + Guid.NewGuid().ToString().Substring(0, 8) + ".backup.json";
+        }
+
+        private static List<Entry> LoadEntries(string file, bool isRecovery = false)
         {
             if (File.Exists(file))
             {
                 string json = File.ReadAllText(file, Encoding.UTF8);
                 List<Entry> entries = JsonConvert.DeserializeObject<List<Entry>>(json);
+
+                if (entries == null)
+                {
+                    log.Error($"File unexpectedly deserialized to empty result: {file}");
+                    File.Move(file, BackupFileName(file));
+
+                    if (!isRecovery)
+                    {
+                        string prevFileName = file + prevFileNameExtension;
+                        log.Warn($"Attempting recovery from: {prevFileName}");
+
+                        if(File.Exists(prevFileName))
+                        {
+                            File.Move(prevFileName, file);
+                            return LoadEntries(file, true);
+                        } else
+                        {
+                            log.Error("Recovery file not found");
+                        }
+                    }
+
+                    log.Error($"Resetting file, you may want to check {file}.*.backup.json");
+                    return new List<Entry>(0);
+                }
+
                 return entries;
             }
 
