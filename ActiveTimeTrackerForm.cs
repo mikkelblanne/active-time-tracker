@@ -14,6 +14,7 @@ namespace ActiveTimeTracker
         public ActiveTimeTrackerForm()
         {
             InitializeComponent();
+            log.Info($"Starting up version {Application.ProductVersion}");
 
             TryLoadingToday();
             StartDateRolloverTimer();
@@ -38,7 +39,7 @@ namespace ActiveTimeTracker
         private Timer _saveTimer;
         private AbsoluteTimer.AbsoluteTimer _dateRolloverTimer;
         private DateTime _dateTracked = DateTime.Now.Date;
-        private bool isUnlocked = true;
+        private bool _isUnlocked = true;
 
         private TimeSpan GetCurrentElapsed()
         {
@@ -132,12 +133,16 @@ namespace ActiveTimeTracker
             switch (e.Reason)
             {
                 case SessionSwitchReason.SessionLock:
-                    isUnlocked = false;
-                    OnUserDisconnected();
+                    if (this._isUnlocked)
+                    {
+                        OnUserDisconnected();
+                    }
                     break;
                 case SessionSwitchReason.SessionUnlock:
-                    isUnlocked = true;
-                    OnUserConnected();
+                    if (!this._isUnlocked)
+                    {
+                        OnUserConnected();
+                    }
                     break;
                 default:
                     break;
@@ -146,6 +151,7 @@ namespace ActiveTimeTracker
 
         private void OnUserConnected()
         {
+            this._isUnlocked = true;
             _lastUnlock = DateTime.Now;
             log.Info($"OnUserConnected: Connected at {_lastUnlock}");
             StartAutoSave();
@@ -153,6 +159,7 @@ namespace ActiveTimeTracker
 
         private void OnUserDisconnected()
         {
+            this._isUnlocked = false;
             TimeSpan currentElapsed = DateTime.Now - _lastUnlock;
             log.Info($"OnUserDisconnected: Disconnecting after {FormatTimeSpan(currentElapsed)} (previous total: {FormatTimeSpan(_unlockedTimeElapsed)})");
             StopAutoSave();
@@ -164,20 +171,23 @@ namespace ActiveTimeTracker
         private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
         {
             log.Info($"PowerModeChanged: {e.Mode}");
-            if (isUnlocked)
-            {
                 switch (e.Mode)
                 {
                     case PowerModes.Suspend:
-                        OnUserDisconnected();
+                        if (_isUnlocked)
+                        {
+                            OnUserDisconnected();
+                        }
                         break;
                     case PowerModes.Resume:
-                        OnUserConnected();
+                        if (!_isUnlocked)
+                        {
+                            OnUserConnected();
+                        }
                         break;
                     default:
                         break;
                 }
-            }
         }
 
         private void monthCalendar1_DateSelected(object sender, DateRangeEventArgs e)
